@@ -1,0 +1,805 @@
+{
+  "solution": {
+    "name": "OmsTemporal",
+    "description": "Production-Grade Order Management System using Temporal .NET SDK",
+    "version": "1.0.0",
+    "targetFramework": "net8.0",
+    "authors": ["Temporal Team"],
+    "license": "MIT"
+  },
+  "buildConfiguration": {
+    "defaultConfiguration": "Debug",
+    "configurations": ["Debug", "Release"],
+    "platforms": ["x64"],
+    "languageVersion": "latest",
+    "nullableReferenceTypes": true,
+    "implicitUsings": true,
+    "generateDocumentation": true
+  },
+  "projects": [
+    {
+      "name": "Oms.Domain",
+      "type": "ClassLibrary",
+      "path": "Oms.Domain/Oms.Domain.csproj",
+      "description": "Core business entities and domain logic",
+      "layer": "Domain",
+      "dependencies": [],
+      "externalPackages": [],
+      "folders": [
+        "Aggregates/Order",
+        "Aggregates/Customer",
+        "Aggregates/Payment",
+        "ValueObjects",
+        "DomainEvents",
+        "Exceptions",
+        "Enums"
+      ]
+    },
+    {
+      "name": "Oms.Application",
+      "type": "ClassLibrary",
+      "path": "Oms.Application/Oms.Application.csproj",
+      "description": "Application services and business use cases",
+      "layer": "Application",
+      "dependencies": ["Oms.Domain"],
+      "externalPackages": [
+        "AutoMapper",
+        "AutoMapper.Extensions.Microsoft.DependencyInjection",
+        "FluentValidation",
+        "MediatR"
+      ],
+      "folders": [
+        "Services",
+        "DTOs",
+        "Mappers",
+        "Validators",
+        "CompensationStrategies",
+        "Exceptions"
+      ]
+    },
+    {
+      "name": "Oms.Infrastructure",
+      "type": "ClassLibrary",
+      "path": "Oms.Infrastructure/Oms.Infrastructure.csproj",
+      "description": "External system integration and persistence",
+      "layer": "Infrastructure",
+      "dependencies": ["Oms.Domain"],
+      "externalPackages": [
+        "Microsoft.EntityFrameworkCore",
+        "Microsoft.EntityFrameworkCore.SqlServer",
+        "Microsoft.EntityFrameworkCore.Design",
+        "StackExchange.Redis",
+        "Confluent.Kafka",
+        "Refit",
+        "Polly",
+        "Azure.Identity",
+        "Azure.Security.KeyVault.Secrets"
+      ],
+      "folders": [
+        "ExternalServices/PaymentGateway",
+        "ExternalServices/RiskEngine",
+        "ExternalServices/PIM",
+        "Messaging/Kafka",
+        "Persistence/Database",
+        "Persistence/Cache",
+        "HttpClients",
+        "Security",
+        "Configuration"
+      ]
+    },
+    {
+      "name": "Oms.Contracts",
+      "type": "ClassLibrary",
+      "path": "Oms.Contracts/Oms.Contracts.csproj",
+      "description": "Serializable data contracts for Temporal and messaging",
+      "layer": "Infrastructure",
+      "dependencies": [],
+      "externalPackages": [],
+      "folders": [
+        "ActivityInputOutputs",
+        "WorkflowSignals",
+        "WorkflowQueries",
+        "ExternalServices",
+        "Kafka",
+        "Shared"
+      ]
+    },
+    {
+      "name": "Oms.Temporal",
+      "type": "ClassLibrary",
+      "path": "Oms.Temporal/Oms.Temporal.csproj",
+      "description": "Temporal workflow and activity implementations",
+      "layer": "Infrastructure",
+      "dependencies": ["Oms.Domain", "Oms.Contracts"],
+      "externalPackages": [
+        "Temporalio",
+        "Temporalio.Extensions.OpenTelemetry",
+        "Temporalio.Testing"
+      ],
+      "folders": [
+        "Workflows",
+        "Activities",
+        "Codecs",
+        "SearchAttributes",
+        "Clients",
+        "Options",
+        "Configuration",
+        "Instrumentation"
+      ]
+    },
+    {
+      "name": "Oms.Shared",
+      "type": "ClassLibrary",
+      "path": "Oms.Shared/Oms.Shared.csproj",
+      "description": "Cross-cutting concerns and shared utilities",
+      "layer": "Infrastructure",
+      "dependencies": [],
+      "externalPackages": [
+        "Microsoft.Extensions.Logging",
+        "Microsoft.Extensions.Configuration",
+        "Serilog",
+        "Serilog.Extensions.Logging",
+        "Serilog.Sinks.OpenTelemetry",
+        "OpenTelemetry",
+        "Prometheus.Client"
+      ],
+      "folders": [
+        "Logging",
+        "Tracing",
+        "Metrics",
+        "Exceptions",
+        "Constants",
+        "Extensions",
+        "Configuration",
+        "Utilities"
+      ]
+    },
+    {
+      "name": "Oms.Api",
+      "type": "WebApi",
+      "path": "Oms.Api/Oms.Api.csproj",
+      "description": "REST API entry point for order ingestion",
+      "layer": "Presentation",
+      "dependencies": ["Oms.Application", "Oms.Infrastructure", "Oms.Temporal", "Oms.Shared"],
+      "externalPackages": [
+        "Microsoft.AspNetCore.App",
+        "Microsoft.Extensions.Hosting",
+        "OpenTelemetry.Instrumentation.AspNetCore"
+      ],
+      "folders": [
+        "Controllers",
+        "Middleware",
+        "Filters",
+        "Extensions",
+        "Responses",
+        "Requests",
+        "Properties",
+        "Startup"
+      ],
+      "ports": [
+        {
+          "protocol": "HTTP",
+          "port": 5000,
+          "environment": "Development"
+        },
+        {
+          "protocol": "HTTPS",
+          "port": 5001,
+          "environment": "Development"
+        },
+        {
+          "protocol": "HTTP",
+          "port": 80,
+          "environment": "Production"
+        },
+        {
+          "protocol": "HTTPS",
+          "port": 443,
+          "environment": "Production"
+        }
+      ]
+    },
+    {
+      "name": "Oms.Worker",
+      "type": "ConsoleApp",
+      "path": "Oms.Worker/Oms.Worker.csproj",
+      "description": "Background worker for activity execution",
+      "layer": "Worker",
+      "dependencies": ["Oms.Temporal", "Oms.Infrastructure", "Oms.Shared"],
+      "externalPackages": [
+        "Microsoft.Extensions.Hosting",
+        "Microsoft.Extensions.DependencyInjection"
+      ],
+      "folders": [
+        "HostedServices",
+        "Configuration",
+        "TaskQueues",
+        "Handlers",
+        "Startup",
+        "Properties"
+      ],
+      "taskQueues": [
+        {
+          "name": "OMS_QUEUE",
+          "description": "Workflow execution queue",
+          "workerCount": 2,
+          "maxConcurrentActivities": 100
+        },
+        {
+          "name": "COMMERCE_QUEUE",
+          "description": "Commerce activities (external API calls)",
+          "workerCount": 4,
+          "maxConcurrentActivities": 50,
+          "activities": [
+            "ValidateCommerceActivity",
+            "CollectRiskActivity",
+            "EnrichOrderActivity"
+          ]
+        },
+        {
+          "name": "FULFILLMENT_QUEUE",
+          "description": "Fulfillment activities (Kafka publishing)",
+          "workerCount": 2,
+          "maxConcurrentActivities": 50,
+          "activities": [
+            "PublishFulfillmentActivity",
+            "UpdateDashboardActivity"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Oms.Tests",
+      "type": "TestProject",
+      "path": "Oms.Tests/Oms.Tests.csproj",
+      "description": "Unit and integration tests",
+      "layer": "Test",
+      "dependencies": [
+        "Oms.Domain",
+        "Oms.Application",
+        "Oms.Infrastructure",
+        "Oms.Temporal"
+      ],
+      "externalPackages": [
+        "xunit",
+        "Moq",
+        "FluentAssertions",
+        "Microsoft.AspNetCore.Mvc.Testing",
+        "Temporalio.Testing"
+      ],
+      "folders": [
+        "Unit/Domain",
+        "Unit/Application",
+        "Unit/Infrastructure",
+        "Integration/Api",
+        "Integration/Temporal",
+        "Fixtures",
+        "Mocks",
+        "Helpers"
+      ]
+    },
+    {
+      "name": "Oms.ReplayTests",
+      "type": "TestProject",
+      "path": "Oms.ReplayTests/Oms.ReplayTests.csproj",
+      "description": "Replay safety and version compatibility tests",
+      "layer": "Test",
+      "dependencies": ["Oms.Temporal"],
+      "externalPackages": [
+        "xunit",
+        "FluentAssertions",
+        "Temporalio.Testing"
+      ],
+      "folders": [
+        "EventHistories",
+        "ReplayTestRunner"
+      ]
+    }
+  ],
+  "externalServices": [
+    {
+      "name": "Temporal Server",
+      "protocol": "gRPC",
+      "host": "temporal-server",
+      "port": 7233,
+      "description": "Workflow orchestration backend"
+    },
+    {
+      "name": "Payment Gateway",
+      "protocol": "REST HTTP",
+      "baseUrl": "${EXTERNAL_SERVICES__PAYMENTGATEWAY__BASEURL}",
+      "description": "Stripe/Square payment authorization"
+    },
+    {
+      "name": "Risk Engine",
+      "protocol": "REST HTTP",
+      "baseUrl": "${EXTERNAL_SERVICES__RISKENGINE__BASEURL}",
+      "description": "External fraud risk assessment"
+    },
+    {
+      "name": "PIM System",
+      "protocol": "REST HTTP",
+      "baseUrl": "${EXTERNAL_SERVICES__PIM__BASEURL}",
+      "description": "Product Information Management"
+    },
+    {
+      "name": "Kafka Cluster",
+      "protocol": "Binary",
+      "bootstrapServers": "${KAFKA__BOOTSTRAPSERVERS}",
+      "description": "Fulfillment order events"
+    },
+    {
+      "name": "SQL Server",
+      "protocol": "TDS",
+      "connectionString": "${CONNECTIONSTRINGS__DEFAULTCONNECTION}",
+      "description": "Order data persistence"
+    },
+    {
+      "name": "Redis",
+      "protocol": "RESP",
+      "connectionString": "${CONNECTIONSTRINGS__REDIS}",
+      "description": "Order cache and session storage"
+    },
+    {
+      "name": "OpenTelemetry Collector",
+      "protocol": "gRPC OTLP",
+      "endpoint": "${OBSERVABILITY__OTLPEXPORTER__ENDPOINT}",
+      "description": "Metrics, traces, and logs collection"
+    }
+  ],
+  "nugetPackages": {
+    "coreFramework": [
+      {
+        "name": "Microsoft.NET.Sdk",
+        "version": "8.0",
+        "description": ".NET 8 SDK"
+      },
+      {
+        "name": "Microsoft.AspNetCore.App",
+        "version": "8.0.0",
+        "description": "ASP.NET Core runtime"
+      },
+      {
+        "name": "Microsoft.Extensions.DependencyInjection",
+        "version": "8.0.0",
+        "description": "Dependency injection container"
+      },
+      {
+        "name": "Microsoft.Extensions.Configuration",
+        "version": "8.0.0",
+        "description": "Configuration management"
+      },
+      {
+        "name": "Microsoft.Extensions.Logging",
+        "version": "8.0.0",
+        "description": "Logging abstraction"
+      },
+      {
+        "name": "Microsoft.Extensions.Hosting",
+        "version": "8.0.0",
+        "description": "Host builder for services"
+      }
+    ],
+    "temporal": [
+      {
+        "name": "Temporalio",
+        "version": "1.2.0",
+        "description": "Temporal .NET SDK"
+      },
+      {
+        "name": "Temporalio.Extensions.OpenTelemetry",
+        "version": "1.2.0",
+        "description": "OpenTelemetry instrumentation for Temporal"
+      },
+      {
+        "name": "Temporalio.Testing",
+        "version": "1.2.0",
+        "description": "Test utilities for Temporal workflows"
+      }
+    ],
+    "observability": [
+      {
+        "name": "OpenTelemetry",
+        "version": "1.9.0",
+        "description": "Core OpenTelemetry SDK"
+      },
+      {
+        "name": "OpenTelemetry.Instrumentation.AspNetCore",
+        "version": "1.9.0",
+        "description": "ASP.NET Core instrumentation"
+      },
+      {
+        "name": "OpenTelemetry.Instrumentation.Http",
+        "version": "1.9.0",
+        "description": "HTTP client instrumentation"
+      },
+      {
+        "name": "OpenTelemetry.Instrumentation.SqlClient",
+        "version": "1.9.0",
+        "description": "SQL client instrumentation"
+      },
+      {
+        "name": "OpenTelemetry.Exporter.Otlp",
+        "version": "1.9.0",
+        "description": "gRPC OTLP exporter"
+      },
+      {
+        "name": "Serilog",
+        "version": "3.1.0",
+        "description": "Structured logging"
+      },
+      {
+        "name": "Serilog.Extensions.Logging",
+        "version": "8.0.0",
+        "description": "Serilog integration with logging"
+      },
+      {
+        "name": "Serilog.Sinks.OpenTelemetry",
+        "version": "1.0.0",
+        "description": "Serilog sink for OpenTelemetry"
+      },
+      {
+        "name": "Prometheus.Client",
+        "version": "4.4.0",
+        "description": "Prometheus metrics client"
+      }
+    ],
+    "persistence": [
+      {
+        "name": "Microsoft.EntityFrameworkCore",
+        "version": "8.0.0",
+        "description": "ORM framework"
+      },
+      {
+        "name": "Microsoft.EntityFrameworkCore.SqlServer",
+        "version": "8.0.0",
+        "description": "SQL Server provider"
+      },
+      {
+        "name": "Microsoft.EntityFrameworkCore.Design",
+        "version": "8.0.0",
+        "description": "EF Core design-time tools"
+      },
+      {
+        "name": "StackExchange.Redis",
+        "version": "2.7.0",
+        "description": "Redis client"
+      }
+    ],
+    "integration": [
+      {
+        "name": "Confluent.Kafka",
+        "version": "2.3.0",
+        "description": "Kafka producer client"
+      },
+      {
+        "name": "Stripe.net",
+        "version": "42.0.0",
+        "description": "Stripe payment SDK"
+      },
+      {
+        "name": "Polly",
+        "version": "8.2.0",
+        "description": "Resilience policies (retry, circuit breaker)"
+      },
+      {
+        "name": "Refit",
+        "version": "7.0.0",
+        "description": "HTTP client generation"
+      }
+    ],
+    "security": [
+      {
+        "name": "System.Security.Cryptography",
+        "version": "4.3.1",
+        "description": "Cryptography APIs"
+      },
+      {
+        "name": "Azure.Identity",
+        "version": "1.11.0",
+        "description": "Azure authentication"
+      },
+      {
+        "name": "Azure.Security.KeyVault.Secrets",
+        "version": "4.5.0",
+        "description": "Azure Key Vault access"
+      }
+    ],
+    "validation": [
+      {
+        "name": "FluentValidation",
+        "version": "11.8.0",
+        "description": "Validation framework"
+      },
+      {
+        "name": "AutoMapper",
+        "version": "13.0.0",
+        "description": "Object mapping"
+      },
+      {
+        "name": "AutoMapper.Extensions.Microsoft.DependencyInjection",
+        "version": "12.0.0",
+        "description": "AutoMapper DI integration"
+      }
+    ],
+    "testing": [
+      {
+        "name": "xunit",
+        "version": "2.6.0",
+        "description": "Test framework"
+      },
+      {
+        "name": "Moq",
+        "version": "4.20.0",
+        "description": "Mocking library"
+      },
+      {
+        "name": "FluentAssertions",
+        "version": "6.12.0",
+        "description": "Assertion library"
+      },
+      {
+        "name": "Microsoft.AspNetCore.Mvc.Testing",
+        "version": "8.0.0",
+        "description": "API testing framework"
+      }
+    ],
+    "utilities": [
+      {
+        "name": "GuardClauses",
+        "version": "4.2.0",
+        "description": "Guard patterns"
+      },
+      {
+        "name": "MediatR",
+        "version": "12.1.1",
+        "description": "CQRS mediator"
+      },
+      {
+        "name": "Newtonsoft.Json",
+        "version": "13.0.3",
+        "description": "JSON serialization"
+      },
+      {
+        "name": "System.Text.Json",
+        "version": "8.0.0",
+        "description": "System JSON serialization"
+      }
+    ]
+  },
+  "configuration": {
+    "environments": [
+      {
+        "name": "Development",
+        "configFile": "appsettings.Development.json",
+        "description": "Local development with full logging"
+      },
+      {
+        "name": "Staging",
+        "configFile": "appsettings.Staging.json",
+        "description": "Pre-production environment"
+      },
+      {
+        "name": "Production",
+        "configFile": "appsettings.Production.json",
+        "description": "Production deployment"
+      }
+    ],
+    "sections": [
+      {
+        "section": "Temporal",
+        "keys": [
+          "Temporal:Host",
+          "Temporal:Port",
+          "Temporal:Namespace",
+          "Temporal:TaskQueue"
+        ]
+      },
+      {
+        "section": "ExternalServices",
+        "subsections": [
+          {
+            "subsection": "PaymentGateway",
+            "keys": ["BaseUrl", "ApiKey", "Timeout"]
+          },
+          {
+            "subsection": "RiskEngine",
+            "keys": ["BaseUrl", "ApiKey", "Timeout"]
+          },
+          {
+            "subsection": "PIM",
+            "keys": ["BaseUrl", "ApiKey", "Timeout"]
+          }
+        ]
+      },
+      {
+        "section": "Kafka",
+        "keys": ["BootstrapServers", "Topic", "GroupId"]
+      },
+      {
+        "section": "Observability",
+        "subsections": [
+          {
+            "subsection": "OtlpExporter",
+            "keys": ["Endpoint", "Protocol"]
+          }
+        ]
+      },
+      {
+        "section": "ConnectionStrings",
+        "keys": [
+          "DefaultConnection",
+          "Redis"
+        ]
+      },
+      {
+        "section": "Encryption",
+        "keys": ["MasterKey"]
+      }
+    ]
+  },
+  "searchAttributes": [
+    {
+      "name": "OrderStatus",
+      "type": "STRING",
+      "description": "Current order state",
+      "examples": ["INITIALIZING", "VALIDATING_ORDER", "FULFILLED"]
+    },
+    {
+      "name": "OrderId",
+      "type": "STRING",
+      "description": "Public order identifier",
+      "examples": ["order-2025-001234"]
+    },
+    {
+      "name": "CustomerId",
+      "type": "STRING",
+      "description": "Customer UUID",
+      "examples": ["cust-98765"]
+    },
+    {
+      "name": "WorkflowVersion",
+      "type": "INT",
+      "description": "Workflow version from GetVersion()",
+      "examples": [1, 2, 3]
+    }
+  ],
+  "activities": [
+    {
+      "name": "ValidateCommerceActivity",
+      "timeout": "10s",
+      "maxRetries": 3,
+      "heartbeat": "none",
+      "idempotencyKey": "OrderId",
+      "description": "Validate order from commerce system"
+    },
+    {
+      "name": "CollectRiskActivity",
+      "timeout": "30s",
+      "maxRetries": 5,
+      "heartbeat": "10s",
+      "idempotencyKey": "OrderId",
+      "description": "Collect risk assessment from external engine"
+    },
+    {
+      "name": "ValidateRiskActivity",
+      "timeout": "5s",
+      "maxRetries": 0,
+      "heartbeat": "none",
+      "idempotencyKey": "OrderId",
+      "description": "Internal business rule validation of risk"
+    },
+    {
+      "name": "ValidatePaymentActivity",
+      "timeout": "20s",
+      "maxRetries": 5,
+      "heartbeat": "5s",
+      "idempotencyKey": "OrderId+Amount",
+      "description": "Authorize payment with gateway"
+    },
+    {
+      "name": "EnrichOrderActivity",
+      "timeout": "15s",
+      "maxRetries": 3,
+      "heartbeat": "none",
+      "idempotencyKey": "OrderId",
+      "description": "Fetch product details from PIM"
+    },
+    {
+      "name": "UpdateDashboardActivity",
+      "timeout": "10s",
+      "maxRetries": 3,
+      "heartbeat": "none",
+      "idempotencyKey": "OrderId+Status",
+      "description": "Publish order status to dashboard"
+    },
+    {
+      "name": "PublishFulfillmentActivity",
+      "timeout": "15s",
+      "maxRetries": 5,
+      "heartbeat": "5s",
+      "idempotencyKey": "OrderId",
+      "description": "Publish to Kafka fulfillment topic"
+    },
+    {
+      "name": "RefundPaymentActivity",
+      "timeout": "20s",
+      "maxRetries": 5,
+      "heartbeat": "5s",
+      "idempotencyKey": "TransactionId",
+      "description": "Compensating activity for payment refund"
+    }
+  ],
+  "deployment": {
+    "containerRuntime": "Docker",
+    "orchestration": "Kubernetes",
+    "docker": {
+      "registry": "docker.io",
+      "images": [
+        {
+          "name": "oms-api",
+          "baseImage": "mcr.microsoft.com/dotnet/runtime:8.0",
+          "buildContext": "Oms.Api/Dockerfile",
+          "ports": [80, 443],
+          "replicas": 2
+        },
+        {
+          "name": "oms-worker",
+          "baseImage": "mcr.microsoft.com/dotnet/runtime:8.0",
+          "buildContext": "Oms.Worker/Dockerfile",
+          "replicas": 4
+        },
+        {
+          "name": "temporal-server",
+          "baseImage": "temporalio/auto-setup:latest",
+          "replicas": 1,
+          "ports": [7233, 6933]
+        }
+      ]
+    },
+    "resources": {
+      "api": {
+        "requests": {
+          "memory": "256Mi",
+          "cpu": "100m"
+        },
+        "limits": {
+          "memory": "512Mi",
+          "cpu": "250m"
+        }
+      },
+      "worker": {
+        "requests": {
+          "memory": "512Mi",
+          "cpu": "250m"
+        },
+        "limits": {
+          "memory": "1Gi",
+          "cpu": "500m"
+        }
+      }
+    }
+  },
+  "documentation": [
+    {
+      "name": "Architecture.md",
+      "description": "Production-grade architecture blueprint (30+ pages)",
+      "path": "/Architecture.md"
+    },
+    {
+      "name": "SolutionStructure.md",
+      "description": "Project structure, folder organization, and DI configuration",
+      "path": "/SolutionStructure.md"
+    },
+    {
+      "name": "ProjectSetup.md",
+      "description": "Step-by-step scaffolding and setup instructions",
+      "path": "/ProjectSetup.md"
+    },
+    {
+      "name": "solution-manifest.json",
+      "description": "Machine-readable solution configuration (this file)",
+      "path": "/solution-manifest.json"
+    }
+  ]
+}
